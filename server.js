@@ -52,15 +52,18 @@ app.get('/:location', async (req, res) => {
     }
 })
 
-app.post('/:location/:city/toggle', async (req, res) => {
-    const { location, city } = req.params
+app.post('/:location/:city/:pointName/toggle', async (req, res) => {
+    const { location, city, pointName } = req.params
     
     if (!locations.includes(location)) {
         return res.status(400).json({ success: false, error: 'Invalid location' })
     }
     
     try {
-        const [current] = await db.query(`SELECT status FROM ?? WHERE city = ?`, [location, city])
+        const [current] = await db.query(
+            `SELECT status FROM ?? WHERE city = ? AND point_name = ?`,
+            [location, city, pointName]
+        )
         
         if (current.length === 0) {
             return res.status(404).json({ success: false, error: 'Point not found' })
@@ -68,13 +71,17 @@ app.post('/:location/:city/toggle', async (req, res) => {
         
         const newStatus = !current[0].status
         
-        await db.query(`UPDATE ?? SET status = ? WHERE city = ?`, [location, newStatus, city])
+        await db.query(
+            `UPDATE ?? SET status = ? WHERE city = ? AND point_name = ?`,
+            [location, newStatus, city, pointName]
+        )
         
-        const [updated] = await db.query(`SELECT id, city, point_name, status, updated_at FROM ?? WHERE city = ?`, [location, city])
+        const [updated] = await db.query(
+            `SELECT id, city, point_name, status, updated_at FROM ?? WHERE city = ? AND point_name = ?`,
+            [location, city, pointName]
+        )
         
-        res.json({
-            point: updated[0]
-        })
+        res.json({ point: updated[0] })
     } catch (error) {
         res.status(500).json({ success: false, error: error.message })
     }
